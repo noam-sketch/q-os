@@ -94,3 +94,4 @@ dmypy.json
 
 # Project Specific
 sphy_table.mem
+/web_ui/static/captures
