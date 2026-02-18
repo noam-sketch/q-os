@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q-OS Cirq IDE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ide.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ai_mode.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/leds.css') }}">
+    <!-- CodeMirror -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/codemirror/codemirror.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/codemirror/monokai.css') }}">
+    <!-- Chart.js for waveforms -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- CodeMirror JS -->
+    <script defer src="{{ url_for('static', filename='js/codemirror/codemirror.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/codemirror/python.js') }}"></script>
+    <!-- Socket.IO Client -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <!-- Import Map for Three.js modules -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+          "three/examples/jsm/controls/OrbitControls": "https://unpkg.com/three@0.128.0/examples/jsm/controls/OrbitControls.js"
+        }
+      }
+    </script>
+</head>
+<body>
+    <div class="ide-container">
+        <!-- Sidebar: Project Explorer -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Projects</h2>
+                <div class="sidebar-actions">
+                    <button id="help-btn" title="Documentation" class="icon-btn">?</button>
+                    <button id="new-project-btn" title="New Project" class="icon-btn">+</button>
+                </div>
+            </div>
+            <div id="project-list" class="project-list">
+                <!-- Project items will be injected here -->
+                <div class="loading">Loading...</div>
+            </div>
+        </aside>
+
+        <!-- Main Editor Area -->
+        <main class="editor-pane">
+            <header class="editor-header">
+                <button id="mobile-menu-btn" class="icon-btn mobile-only" title="Toggle Menu">☰</button>
+                <span id="current-file">No file selected</span>
+                <div class="editor-controls">
+                    <button id="toggle-telemetry-btn" title="Toggle Telemetry">Telemetry</button>
+                    <button id="toggle-debugger-btn" title="Toggle Debugger">Debugger</button>
+                    <div class="ai-toggle-container">
+                        <label class="switch">
+                            <input type="checkbox" id="ai-mode-toggle">
+                            <span class="slider round"></span>
+                        </label>
+                        <span class="ai-label">Qusq Mode</span>
+                    </div>
+                    <button id="save-btn" disabled>Save</button>
+                    <button id="run-btn" class="primary" disabled>Run on Q-OS ▶</button>
+                </div>
+            </header>
+            
+            <!-- AI Prompt Area (Hidden by default) -->
+            <div id="ai-prompt-container" class="ai-prompt-container hidden">
+                <textarea id="ai-prompt-input" placeholder="Ask Qusq to build a circuit (e.g., 'Create a Bell State using qubit 0 and 1')..."></textarea>
+                <button id="generate-code-btn" class="ai-btn">Ask Qusq</button>
+            </div>
+
+            <!-- Visual Builder Toggle and Container -->
+            <div class="visual-builder-toggle-container">
+                <label class="switch">
+                    <input type="checkbox" id="visual-builder-toggle">
+                    <span class="slider round"></span>
+                </label>
+                <span class="visual-builder-label">Visual Builder</span>
+            </div>
+
+            <div id="visual-builder-container" class="visual-builder-container hidden">
+                <div id="gate-palette" class="gate-palette">
+                    <div class="draggable-gate" draggable="true" data-gate-type="H">H</div>
+                    <div class="draggable-gate" draggable="true" data-gate-type="CNOT">CNOT</div>
+                    <div class="draggable-gate" draggable="true" data-gate-type="I">I</div>
+                    <div class="draggable-gate" draggable="true" data-gate-type="X">X</div>
+                    <div class="draggable-gate" draggable="true" data-gate-type="Y">Y</div>
+                    <div class="draggable-gate" draggable="true" data-gate-type="Z">Z</div>
+                    <div class="draggable-gate" draggable="true" data-gate-type="M">M</div>
+                </div>
+                <div id="circuit-canvas" class="circuit-canvas">
+                    <!-- Qubit lanes and dropped gates will go here -->
+                </div>
+            </div>
+
+            <div class="code-editor-container">
+                <textarea id="code-editor" spellcheck="false" placeholder="Select a file to start coding..."></textarea>
+            </div>
+            
+            <!-- Resizer Handle -->
+            <div id="console-resizer" class="resizer-horizontal"></div>
+
+            <!-- Console Output -->
+            <div class="console-pane" id="console-pane">
+                <div class="console-header">Output</div>
+                <pre id="console-output"></pre>
+            </div>
+        </main>
+
+        <!-- Floating Telemetry Window -->
+        <div id="telemetry-window" class="floating-window hidden">
+            <div class="window-header">
+                <span>Telemetry</span>
+                <button class="close-window-btn" data-target="telemetry-window">&times;</button>
+            </div>
+            <div class="window-content">
+                <!-- LED Indicators -->
+                <div class="led-panel">
+                    <div class="led" id="led-0" title="System Active"></div>
+                    <div class="led" id="led-1" title="Data TX"></div>
+                    <div class="led" id="led-2" title="Heartbeat"></div>
+                    <div class="led" id="led-3" title="Coherence Locked"></div>
+                </div>
+                
+                <div class="mode-badge" id="mode-badge">SIMULATION</div>
+
+                <div class="chart-container-small">
+                    <canvas id="sphyWaveChart"></canvas>
+                </div>
+                <div id="three-container" style="width: 100%; height: 250px; position: relative; overflow: hidden; border-radius: 6px; margin-top: 15px;"></div>
+                <div class="telemetry-info">
+                    <div class="data-row">
+                        <span>Status:</span>
+                        <span id="status-text" class="status-ok">IDLE</span>
+                    </div>
+                    <div class="data-row">
+                        <span>Coherence:</span>
+                        <span class="value">100%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Debugger Window -->
+        <div id="debugger-window" class="floating-window hidden">
+            <div class="window-header">
+                <span>Debugger</span>
+                <button class="close-window-btn" data-target="debugger-window">&times;</button>
+            </div>
+            <div class="window-content">
+                <div class="debugger-panel" style="margin-top: 0; border: none; background: transparent; padding: 0;">
+                    <div class="debugger-controls">
+                        <button id="load-circuit-btn">Load Circuit</button>
+                        <button id="reset-debug-btn" disabled>Reset</button>
+                        <button id="step-debug-btn" disabled>Step</button>
+                    </div>
+                    <div class="debugger-info">
+                        <div class="data-row">
+                            <span>Status:</span>
+                            <span id="debug-status">No Circuit</span>
+                        </div>
+                        <div class="data-row">
+                            <span>Step:</span>
+                            <span id="debug-current-step">-</span> / <span id="debug-total-steps">-</span>
+                        </div>
+                        <div class="data-row full-width">
+                            <span>Gate:</span>
+                            <span id="debug-gate-info">N/A</span>
+                        </div>
+                        <div class="qubit-states">
+                            <h4>Qubit Probabilities:</h4>
+                            <div id="debug-qubit-probs"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- New Project Modal -->
+        <div id="modal-overlay" class="modal-overlay hidden">
+        <div class="modal">
+            <h3>Create New Project</h3>
+            <input type="text" id="new-project-name" placeholder="Project Name">
+            <div class="modal-actions">
+                <button id="cancel-project-btn">Cancel</button>
+                <button id="create-project-btn" class="primary">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal-overlay" class="modal-overlay hidden">
+        <div class="modal help-modal">
+            <div class="modal-header">
+                <h3>Q-OS IDE Documentation</h3>
+                <button id="close-help-btn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-content">
+                <h4>1. Getting Started</h4>
+                <p>Create a new project using the <strong>+</strong> button. Select <code>main.py</code> to start coding.</p>
+                
+                <h4>2. Qusq AI Assistant ✨</h4>
+                <p>Toggle <strong>Qusq Mode</strong> to ask our AI agent to generate Cirq code for you. Try prompts like:</p>
+                <ul>
+                    <li>"Create a Bell State"</li>
+                    <li>"Implement Grover's Algorithm for 2 qubits"</li>
+                </ul>
+
+                <h4>3. Telemetry & SPHY Waves</h4>
+                <p>The graph on the right shows the real-time <strong>SPHY (Stabilized Phase) Waves</strong> generated by the FPGA to mimic quantum superposition.</p>
+                <ul>
+                    <li><span style="color: #2ea043">Green (HPHYSPI):</span> Harmonic Stabilizer</li>
+                    <li><span style="color: #c9d1d9">Grey (SPYSPI):</span> Phase Alignment</li>
+                </ul>
+                
+                <h4>4. Shortcuts</h4>
+                <kbd>Ctrl</kbd> + <kbd>S</kbd> : Save File<br>
+                <kbd>Ctrl</kbd> + <kbd>Enter</kbd> : Run on Q-OS
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="{{ url_for('static', filename='js/ide.js') }}"></script>
+</body>
+</html>

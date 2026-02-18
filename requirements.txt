@@ -1,0 +1,6 @@
+pytest
+numpy
+flask
+Flask-SocketIO
+google-generativeai
+google-cloud-aiplatform

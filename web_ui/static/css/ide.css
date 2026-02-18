@@ -1,0 +1,718 @@
+:root {
+    --bg-color: #0d1117;
+    --panel-bg: #161b22;
+    --border-color: #30363d;
+    --text-primary: #c9d1d9;
+    --text-secondary: #8b949e;
+    --accent-color: #2ea043;
+    --accent-hover: #3fb950;
+    --danger-color: #da3633;
+    --font-family: 'Roboto Mono', monospace;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.4);
+    --transition-speed: 0.2s;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-family);
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Prevent body scroll, handle in panels */
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #484f58;
+}
+
+/* Global hidden class */
+.hidden {
+    display: none !important;
+}
+
+.ide-container {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    grid-template-rows: 1fr;
+    height: 100vh;
+    width: 100%;
+}
+
+/* --- Sidebar Styles --- */
+.sidebar {
+    background-color: var(--panel-bg);
+    border-right: 1px solid var(--border-color);
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    font-size: 0.9rem;
+}
+
+/* ... existing sidebar styles ... */
+
+/* --- Floating Window Styles --- */
+.floating-window {
+    position: absolute;
+    width: 320px;
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* resize: both;  removed for now as it complicates layout, can add later if requested */
+    min-width: 250px;
+    min-height: 200px;
+    transition: opacity 0.2s, visibility 0.2s;
+}
+
+.floating-window.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Default positions */
+#telemetry-window {
+    top: 70px;
+    right: 20px;
+    height: auto;
+    max-height: 80vh;
+}
+
+#debugger-window {
+    top: 70px;
+    right: 360px;
+    height: auto;
+}
+
+.window-header {
+    padding: 10px 15px;
+    background-color: #21262d; /* Slightly lighter header */
+    border-bottom: 1px solid var(--border-color);
+    cursor: move;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    color: var(--text-primary);
+    user-select: none;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.close-window-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.close-window-btn:hover {
+    color: var(--text-primary);
+}
+
+.window-content {
+    padding: 15px;
+    overflow-y: auto;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Reuse existing component styles within window-content */
+.window-content .telemetry-info,
+.window-content .chart-container-small,
+.window-content .led-panel {
+    width: 100%;
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-header h2 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.sidebar-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.icon-btn {
+    background-color: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all var(--transition-speed);
+}
+
+.icon-btn:hover {
+    background-color: #21262d;
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+
+#new-project-btn {
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+#new-project-btn:hover {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.project-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.project-item {
+    padding: 8px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color var(--transition-speed);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.project-item:hover {
+    background-color: rgba(255,255,255,0.05);
+    color: var(--text-primary);
+}
+
+.project-item.active {
+    background-color: rgba(46, 160, 67, 0.15);
+    color: var(--accent-color);
+    border-left: 3px solid var(--accent-color);
+}
+
+/* --- Editor Area Styles --- */
+.editor-pane {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    position: relative;
+    padding: 0;
+    background-color: var(--bg-color);
+}
+
+.editor-header {
+    background-color: var(--panel-bg);
+    padding: 0 20px; /* Override global header padding */
+    margin-bottom: 0; /* Override global header margin */
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 50px;
+    flex-shrink: 0; /* Prevent collapsing */
+    flex-wrap: nowrap; /* Prevent wrapping */
+}
+
+#current-file {
+    font-weight: bold;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px; /* Limit width to prevent pushing controls */
+}
+
+.editor-controls {
+    display: flex;
+    align-items: center;
+}
+
+.editor-controls button {
+    margin-left: 10px;
+    padding: 6px 14px;
+    background-color: #21262d;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--font-family);
+    font-size: 0.8rem;
+    transition: all var(--transition-speed);
+}
+
+.editor-controls button:hover:not(:disabled) {
+    background-color: #30363d;
+    border-color: var(--text-secondary);
+}
+
+.editor-controls button.primary {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    font-weight: bold;
+}
+
+.editor-controls button.primary:hover:not(:disabled) {
+    background-color: var(--accent-hover);
+    box-shadow: 0 0 8px rgba(46, 160, 67, 0.4);
+}
+
+.editor-controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.code-editor-container {
+    flex-grow: 1;
+    background-color: var(--bg-color);
+    overflow: hidden;
+    position: relative;
+}
+
+/* CodeMirror Overrides */
+.CodeMirror {
+    height: 100%;
+    width: 100%;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 14px;
+    background-color: transparent !important;
+}
+
+.CodeMirror-gutters {
+    background-color: var(--bg-color) !important;
+    border-right: 1px solid var(--border-color) !important;
+}
+
+/* --- Resizer --- */
+.resizer-horizontal {
+    height: 6px;
+    background-color: var(--border-color);
+    cursor: ns-resize;
+    flex-shrink: 0;
+    transition: background-color 0.2s;
+    z-index: 10;
+}
+
+.resizer-horizontal:hover {
+    background-color: var(--accent-color);
+}
+
+/* --- Console Pane --- */
+.console-pane {
+    height: 180px; /* Initial Height */
+    min-height: 50px;
+    max-height: 80%;
+    background-color: #090c10;
+    /* border-top: 1px solid var(--border-color); Removed, handled by resizer */
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0; /* Prevent shrinking below set height */
+}
+
+.console-header {
+    padding: 8px 15px;
+    background-color: var(--panel-bg);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    justify-content: space-between;
+}
+
+#console-output {
+    flex-grow: 1;
+    padding: 15px;
+    margin: 0;
+    overflow-y: auto;
+    overflow-x: auto; /* Handle horizontal overflow */
+    font-size: 0.85rem;
+    color: var(--accent-color);
+    white-space: pre-wrap;
+    word-break: break-all; /* Force long words to break */
+    font-family: 'Roboto Mono', monospace;
+}
+
+/* --- Telemetry Sidebar --- */
+.telemetry-sidebar {
+    background-color: var(--panel-bg);
+    border-left: 1px solid var(--border-color);
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto; /* Allow scrolling if content overflows */
+}
+
+.telemetry-sidebar h2 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Debugger Panel Styles */
+.debugger-panel {
+    background-color: #21262d;
+    border-radius: 4px;
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    margin-top: 20px;
+    flex-grow: 1; /* Allow it to take up remaining space */
+    display: flex;
+    flex-direction: column;
+}
+
+.debugger-panel h2 {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.debugger-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.debugger-controls button {
+    padding: 8px 10px;
+    font-size: 0.75rem;
+    background-color: #30363d;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.debugger-controls button:hover:not(:disabled) {
+    background-color: #484f58;
+}
+
+.debugger-controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.debugger-info {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.debugger-info .data-row {
+    justify-content: flex-start;
+    gap: 5px;
+}
+
+.debugger-info .data-row span:last-child {
+    color: var(--text-primary);
+    font-weight: normal;
+}
+
+.debugger-info .data-row.full-width {
+    flex-wrap: wrap;
+}
+
+.qubit-states {
+    margin-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    padding-top: 10px;
+    max-height: 200px; /* Limit height for qubit states */
+    overflow-y: auto;
+}
+
+.qubit-states h4 {
+    font-size: 0.85rem;
+    margin-top: 0;
+    margin-bottom: 8px;
+    color: var(--accent-color);
+}
+
+.qubit-prob-item {
+    margin-bottom: 5px;
+    font-size: 0.75rem;
+}
+.qubit-prob-item span {
+    color: var(--text-primary);
+}
+
+.telemetry-sidebar h2 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.chart-container-small {
+    height: 180px;
+    width: 100%;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 5px;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+    overflow: hidden;
+}
+
+.telemetry-info {
+    background-color: #21262d;
+    border-radius: 4px;
+    padding: 15px;
+    border: 1px solid var(--border-color);
+}
+
+.data-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+}
+
+.data-row:last-child {
+    margin-bottom: 0;
+}
+
+.data-row span:first-child {
+    color: var(--text-secondary);
+}
+
+.status-ok {
+    color: var(--accent-color);
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.status-ok::before {
+    content: '';
+    display: block;
+    width: 8px;
+    height: 8px;
+    background-color: var(--accent-color);
+    border-radius: 50%;
+    box-shadow: 0 0 5px var(--accent-color);
+}
+
+/* --- Modals --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(2px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s;
+}
+
+.modal-overlay:not(.hidden) {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal {
+    background-color: var(--panel-bg);
+    padding: 25px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    width: 400px;
+    transform: translateY(20px);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-overlay:not(.hidden) .modal {
+    transform: translateY(0);
+}
+
+.modal h3 {
+    margin-top: 0;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+}
+
+.modal input {
+    width: 100%;
+    padding: 10px;
+    margin: 15px 0 20px 0;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 4px;
+    font-family: var(--font-family);
+    box-sizing: border-box;
+}
+
+.modal input:focus {
+    border-color: var(--accent-color);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(46, 160, 67, 0.2);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modal-actions button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    background-color: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: background-color 0.2s;
+}
+
+.modal-actions button:hover {
+    background-color: #30363d;
+}
+
+.modal-actions button.primary {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    color: white;
+}
+
+.modal-actions button.primary:hover {
+    background-color: var(--accent-hover);
+}
+
+/* Help Modal Specifics */
+.help-modal {
+    width: 600px;
+    max-width: 90%;
+}
+
+/* --- Responsive Design --- */
+.mobile-only {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .ide-container {
+        grid-template-columns: 200px 1fr; /* Hide telemetry sidebar */
+    }
+    .telemetry-sidebar {
+        display: none; 
+    }
+}
+
+@media (max-width: 768px) {
+    .ide-container {
+        display: flex; /* Switch to flex column layout */
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: -220px; /* Hidden by default */
+        width: 220px;
+        height: 100%;
+        z-index: 100;
+        transition: left 0.3s ease;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+    }
+
+    .sidebar.open {
+        left: 0;
+    }
+    
+    .editor-pane {
+        width: 100%;
+        height: 100%;
+    }
+
+    .mobile-only {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 10px;
+        border: none;
+        font-size: 1.2rem;
+        background: none;
+        color: var(--text-primary);
+        cursor: pointer;
+    }
+    
+    .console-pane {
+        height: 120px; /* Reduce console height on mobile */
+    }
+}

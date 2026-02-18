@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q-OS Quantum Dashboard</title>
+    <!-- Use a dark, modern font -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/leds.css') }}">
+    <!-- Chart.js for waveforms -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Socket.IO Client -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <!-- Import Map for Three.js modules -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+          "three/examples/jsm/controls/OrbitControls": "https://unpkg.com/three@0.128.0/examples/jsm/controls/OrbitControls.js"
+        }
+      }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Q-OS Quantum Dashboard</h1>
+            
+            <!-- LED Indicators -->
+            <div class="led-panel">
+                <div class="led" id="led-0" title="System Active"></div>
+                <div class="led" id="led-1" title="Data TX"></div>
+                <div class="led" id="led-2" title="Heartbeat"></div>
+                <div class="led" id="led-3" title="Coherence Locked"></div>
+            </div>
+            
+            <div class="mode-badge" id="mode-badge">SIMULATION</div>
+            
+            <a href="/ide" class="nav-link" style="margin-right: 20px; margin-left: 20px; color: #2ea043; text-decoration: none; border: 1px solid #2ea043; padding: 5px 10px; border-radius: 4px;">Launch IDE &rarr;</a>
+            <div class="status-indicator" id="status-indicator"></div>
+            <span class="status-text">SYSTEM: ONLINE</span>
+        </header>
+
+        <main>
+            <div class="dashboard-grid">
+                <section class="panel" id="waveform-panel">
+                    <h2>Mimetic Hardware Telemetry</h2>
+                    <div class="chart-container">
+                        <canvas id="sphyWaveChart"></canvas>
+                    </div>
+                    <div class="telemetry-data">
+                        <div class="data-point">
+                            <span class="label">HPHYSPI Frequency</span>
+                            <span class="value">419.43 kHz</span>
+                        </div>
+                        <div class="data-point">
+                            <span class="label">SPYSPI Frequency</span>
+                            <span class="value">838.86 kHz</span>
+                        </div>
+                        <div class="data-point">
+                            <span class="label">Coherence State</span>
+                            <span class="value highlight">LOCKED (ΔS=0)</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel" id="control-panel">
+                    <h2>Quantum Circuit Construction</h2>
+                    <div class="control-group">
+                        <label for="gate-select">Select Gate Operation</label>
+                        <select id="gate-select">
+                            <option value="I">Identity (I)</option>
+                            <option value="H">Hadamard (H)</option>
+                            <option value="X">Pauli-X (X)</option>
+                            <option value="Z">Pauli-Z (Z)</option>
+                            <option value="S">Phase Gate (S)</option>
+                            <option value="T">T Gate (T)</option>
+                            <option value="CNOT">CNOT (CNOT)</option>
+                        </select>
+                        <button id="apply-gate-btn">Apply Gate</button>
+                    </div>
+                    <div id="gate-result" class="console-output">
+                        > System Initialized...
+                        > Connected to FPGA MIMETIC BRIDGE
+                        > Ready for input...
+                    </div>
+                </section>
+
+                <section class="panel" id="3d-panel" style="grid-column: span 2;">
+                    <h2>Mimetic Electron Flow (3D)</h2>
+                    <div id="three-container" style="width: 100%; height: 400px; position: relative; overflow: hidden; border-radius: 6px;"></div>
+                </section>
+            </div>
+        </main>
+
+        <footer>
+            <p>Q-OS v0.1.0 | FPGA Mimetic Transducer Interface</p>
+        </footer>
+    </div>
+
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

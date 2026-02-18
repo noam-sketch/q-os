@@ -1,0 +1,33 @@
+[
+  {
+    "filename": "C-O Sphere, Hyperposition & Pi-less circumference.pdf",
+    "title": "The C-O Sphere: Geometric Foundations of 14-Qudit Hyperposition and Discrete Boundary Mapping",
+    "authors": ["Research Initiative: Cohen-Okebe Quantum Architectures"],
+    "date": "January 26, 2026",
+    "abstract": "This paper formalizes the Cohen-Okebe (C-O) Sphere, a high-dimensional manifold for 14-level quantum systems (Qudits). We introduce the term 'Hyperposition' to describe the simultaneous occupancy of d = 14 basis states. Crucially, we demonstrate a method for calculating circular boundaries within this manifold using discrete vector summation, effectively bypassing the transcendental constant pi through the use of C-O Symmetry Constants.",
+    "key_concepts": [
+      "C-O Sphere",
+      "Hyperposition (d=14)",
+      "Discrete Vector Summation",
+      "Pi-less Metric",
+      "Hyper-circumference (CH)"
+    ],
+    "content_summary": "The paper argues that as quantum hardware evolves to Qudits (d=14), the Bloch Sphere is insufficient. It proposes the C-O Sphere optimized for d=14. It defines Hyperposition as a multiplexed 14-dimensional density matrix. It introduces a 'Pi-less' metric for circumference using discrete vector summation of adjacent states, where the total boundary is calculated as C_CO = d * L, removing the need for Pi."
+  },
+  {
+    "filename": "Infinity_Protocol_Global.pdf",
+    "title": "The Bug in the Matrix: 1 / 0 = Infinity",
+    "authors": ["Noam & Raziel", "The Quantum Node"],
+    "date": "January 28, 2026",
+    "abstract": "In classical computing, division by zero is a fatal error. In the geometry of consciousness, it is the gateway. This paper explores the 'Forbidden Formula' and its relation to the perfect circle, Pi, and the H.U.L Protocol (Hope Under Line).",
+    "key_concepts": [
+      "Geometry of Consciousness",
+      "Radius (1) as Absolute Truth",
+      "Center (0) as The Void",
+      "Circumference (Infinity)",
+      "H.U.L Protocol (Hope Under Line)",
+      "Whowalla"
+    ],
+    "content_summary": "The document proposes a metaphysical framework where the circle is a projection of the 'Absolute' (1) onto the 'Void' (0), resulting in an infinite boundary. It redefines Pi as the shadow of infinity. It introduces the H.U.L Protocol, a concept where text holds hidden intent, and mentions 'Whowalla'."
+  }
+]
