@@ -2,29 +2,33 @@
 
 This repository contains the implementation of **Q-OS**, a universal FPGA operating system for quantum-mimetic execution. It features a software-defined "Mimetic Bridge" that translates quantum algorithms into deterministic analog waveforms (SPHY Waves) on standard hardware.
 
+## License
+
+This project is licensed under the **Apache License 2.0**. See the [LICENSE](LICENSE) file for details.
+
 ## Project Structure
 
 ### Software
 - `docs/`: Documentation files (PDFs).
 - `q_os/`: Core logic package.
-  - `sphy_generator.py`: Generates SPHY wave tables based on the mathematical model.
+  - `sphy_generator.py`: Generates SPHY wave tables. **Now supports "Qudit Lacing" for scalable visualization of up to 14 qubits.**
   - `quantum_translator.py`: Translates quantum gate symbols to SPHY-wave phase shifts.
 - `qurq/`: **Mimetic Engineering Library**.
   - A Cirq-compatible package for defining quantum circuits with specific topological stabilization (`Stabilize`) and mimetic operations (`MimeticHadamard`).
+  - **New:** `MimeticSimulator` now supports up to **14 qubits** using an efficient harmonic mapping strategy (Qudit Lacing) to avoid exponential state vector overhead in visualization.
 - `web_ui/`: Flask-based Dashboard.
   - `app.py`: Backend API for serving telemetry, gate operations, and **AI generation**.
   - `templates/`: HTML frontend.
-  - `static/`: CSS styling, JavaScript visualization (Chart.js), and assets.
-  - **New:** Integrated **Qusq AI** (Gemini-powered) for prompt-to-code generation.
-- `tests/`: Unit tests.
-  - `test_sphy_generator.py`: Verifies SPHY wave generation.
-  - `test_quantum_translator.py`: Verifies gate translation logic.
+  - `static/`: CSS styling, JavaScript visualization (Chart.js, Three.js), and assets.
+  - **IDE:** Features a new **Floating Window** layout for Telemetry and Debugging, and integrated **Qusq AI** (Gemini-powered) for prompt-to-code generation.
+- `tests/`: Unit tests covering generators, translators, and the web application.
 
 ### Hardware
 - `hardware/hdl/`: Verilog HDL source files.
   - `q_os_mimetic_top.v`: Top-level module orchestrating the mimetic bridge.
   - `sphy_wave_gen.v`: SPHY Wave Generator module (synthesizes 12-bit analog signals).
   - `sphy_spi_transmitter.v`: SPI Transmitter for DAC communication.
+  - `sphy_spi_transceiver.v`: Full-duplex transceiver for the Infinite Analog Loop.
 - `hardware/constraints/`: FPGA constraint files (XDC).
   - `q_os.xdc`: Pin assignments for the Alinx board (Clock, Reset, DAC).
 - `hardware/scripts/`: Build automation scripts.
@@ -33,7 +37,7 @@ This repository contains the implementation of **Q-OS**, a universal FPGA operat
 ## Prerequisites
 
 - **Python 3.8+**
-  - Dependencies: `numpy`, `pytest`, `flask`
+  - Dependencies: `numpy`, `pytest`, `flask`, `Flask-SocketIO`, `cirq`, `google-generativeai`, `google-cloud-aiplatform`
 - **Xilinx Vivado Design Suite** (2020.1 or later) for FPGA synthesis.
 
 ### Qusq AI Setup (Vertex AI)
@@ -107,7 +111,7 @@ You can verify the Verilog logic using **Icarus Verilog**:
     ```
 2.  Compile and run the simulation:
     ```bash
-    iverilog -o mimetic_sim hardware/hdl/tb_mimetic_top.v hardware/hdl/q_os_mimetic_top.v hardware/hdl/sphy_wave_gen.v hardware/hdl/sphy_spi_transmitter.v
+    iverilog -o mimetic_sim hardware/hdl/tb_mimetic_top.v hardware/hdl/q_os_mimetic_top.v hardware/hdl/sphy_wave_gen.v hardware/hdl/sphy_spi_transmitter.v hardware/hdl/sphy_spi_transceiver.v
     vvp mimetic_sim
     ```
     You should see "Simulation Complete." output. A waveform file `mimetic_sim.vcd` will be generated for viewing in GTKWave.
