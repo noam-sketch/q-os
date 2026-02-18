@@ -185,3 +185,79 @@ footer {
     border-top: 1px solid var(--border-color);
     padding-top: 25px;
 }
+
+/* Floating Window Styles */
+.floating-window {
+    position: fixed;
+    width: 350px;
+    height: 350px; /* Initial height */
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 250px;
+    min-height: 200px;
+    resize: both; /* Allow resizing */
+    overflow: auto; /* Required for resize handle */
+    transition: opacity 0.2s, visibility 0.2s;
+    /* Default position */
+    top: 100px;
+    right: 20px;
+}
+
+.floating-window.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.window-header {
+    padding: 10px 15px;
+    background-color: #21262d;
+    border-bottom: 1px solid var(--border-color);
+    cursor: move;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    color: var(--text-primary);
+    user-select: none;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.close-window-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    width: auto; /* Reset width from global button style */
+}
+
+.close-window-btn:hover {
+    color: var(--text-primary);
+    background-color: transparent;
+}
+
+.window-content {
+    padding: 0; /* Iframe takes full space */
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #000;
+    height: 100%; /* Fill parent height */
+}
+
+.window-content iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}

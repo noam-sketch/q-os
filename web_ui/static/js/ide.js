@@ -50,8 +50,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Floating Window Logic ---
     const telemetryWindow = document.getElementById('telemetry-window');
     const debuggerWindow = document.getElementById('debugger-window');
+    const photonicWindow = document.getElementById('photonic-window');
     const toggleTelemetryBtn = document.getElementById('toggle-telemetry-btn');
     const toggleDebuggerBtn = document.getElementById('toggle-debugger-btn');
+    const togglePhotonicBtn = document.getElementById('toggle-photonic-btn');
 
     function toggleWindow(windowEl, btnEl) {
         if (windowEl.classList.contains('hidden')) {
@@ -67,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     toggleTelemetryBtn.onclick = () => toggleWindow(telemetryWindow, toggleTelemetryBtn);
     toggleDebuggerBtn.onclick = () => toggleWindow(debuggerWindow, toggleDebuggerBtn);
+    togglePhotonicBtn.onclick = () => toggleWindow(photonicWindow, togglePhotonicBtn);
 
     // Close buttons
     document.querySelectorAll('.close-window-btn').forEach(btn => {
@@ -78,12 +81,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Update toggle button state
                 if (targetId === 'telemetry-window') toggleTelemetryBtn.classList.remove('active');
                 if (targetId === 'debugger-window') toggleDebuggerBtn.classList.remove('active');
+                if (targetId === 'photonic-window') togglePhotonicBtn.classList.remove('active');
             }
         };
     });
 
     // Make windows draggable
     function makeDraggable(el) {
+        if (!el) return; // Guard clause
         const header = el.querySelector('.window-header');
         let isDragging = false;
         let startX, startY, initialLeft, initialTop;
@@ -134,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     makeDraggable(telemetryWindow);
     makeDraggable(debuggerWindow);
+    makeDraggable(photonicWindow);
 
     // Initial State: Show Telemetry
     telemetryWindow.classList.remove('hidden');

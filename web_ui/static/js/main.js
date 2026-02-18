@@ -318,4 +318,67 @@ NETWORK ERROR: ${error}`;
 
     // Initialize Three.js
     initThreeJS();
+
+    // --- Floating Window Logic ---
+    const photonicWindow = document.getElementById('photonic-window');
+    const togglePhotonicBtn = document.getElementById('toggle-photonic-btn');
+    const closePhotonicBtn = document.getElementById('close-photonic-btn');
+
+    if (photonicWindow && togglePhotonicBtn && closePhotonicBtn) {
+        // Toggle Visibility
+        togglePhotonicBtn.addEventListener('click', () => {
+            photonicWindow.classList.toggle('hidden');
+        });
+
+        closePhotonicBtn.addEventListener('click', () => {
+            photonicWindow.classList.add('hidden');
+        });
+
+        // Dragging Logic
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+        let xOffset = 0;
+        let yOffset = 0;
+
+        const header = photonicWindow.querySelector('.window-header');
+
+        header.addEventListener('mousedown', dragStart);
+        document.addEventListener('mouseup', dragEnd);
+        document.addEventListener('mousemove', drag);
+
+        function dragStart(e) {
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+
+            if (e.target === header || e.target.parentNode === header) {
+                isDragging = true;
+            }
+        }
+
+        function dragEnd(e) {
+            initialX = currentX;
+            initialY = currentY;
+            isDragging = false;
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+
+                xOffset = currentX;
+                yOffset = currentY;
+
+                setTranslate(currentX, currentY, photonicWindow);
+            }
+        }
+
+        function setTranslate(xPos, yPos, el) {
+            el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+        }
+    }
 });

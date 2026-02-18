@@ -79,7 +79,18 @@ Open your browser and navigate to `http://localhost:5000`.
 
 **New:** Access the **Q-OS Cirq IDE** by clicking "Launch IDE" or navigating to `http://localhost:5000/ide`.
 
-### 3. Generate Hardware Memory Initialization
+### 3. Photonic Entanglement (Mimetic Twin)
+
+Activate the **Mimetic Twin Protocol** to inject real-world entropy into the quantum simulation:
+
+1.  Click the **"Photonic Link"** button in the dashboard header.
+2.  Allow camera access to initiate the recursive opto-electronic feedback loop.
+3.  The system will:
+    -   Capture video entropy (motion/noise).
+    -   Capture screen brightness (visual feedback).
+    -   Modulate the SPHY (Stabilized Phase) waves in real-time, creating a closed-loop "entangled" state.
+
+### 4. Generate Hardware Memory Initialization
 
 Before building the FPGA bitstream, generate the `sphy_table.mem` file which initializes the FPGA's block RAM with the calculated waveforms:
 

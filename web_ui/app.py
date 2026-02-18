@@ -9,6 +9,11 @@ import vertexai
 from vertexai.generative_models import GenerativeModel
 from flask import Flask, jsonify, render_template, request
 from flask_socketio import SocketIO, emit
+try:
+    from PIL import ImageGrab, ImageStat
+except ImportError:
+    ImageGrab = None
+    ImageStat = None
 
 # Load environment variables
 load_dotenv()
@@ -40,6 +45,11 @@ app.config['PROJECTS_DIR'] = os.path.expanduser('~/q_os_projects')
 if not os.path.exists(app.config['PROJECTS_DIR']):
     os.makedirs(app.config['PROJECTS_DIR'])
 
+# Configuration for Screen Captures
+app.config['CAPTURES_DIR'] = os.path.join(os.path.dirname(__file__), 'static', 'captures')
+if not os.path.exists(app.config['CAPTURES_DIR']):
+    os.makedirs(app.config['CAPTURES_DIR'])
+
 # --- AI Configuration ---
 def configure_ai():
     """Configures Vertex AI if environment variables are set."""
@@ -64,6 +74,13 @@ def ide():
     Route for the IDE interface.
     """
     return render_template('ide.html')
+
+@app.route('/photonic')
+def photonic():
+    """
+    Route for the Photonic Entanglement interface.
+    """
+    return render_template('photonic.html')
 
 # Old /api/waves endpoint is now commented out. Telemetry is via WebSocket.
 # @app.route('/api/waves')
@@ -254,71 +271,137 @@ def ai_generate():
 # --- Telemetry Streaming via WebSocket ---
 telemetry_streaming_active = False
 telemetry_thread = None
+capture_thread = None
+photonic_entropy_level = 0.0
+screen_brightness_modulation = 0.0
+
+def generate_telemetry_frame(driver_instance, sim_instance, phase_drift, entropy_level=0.0, brightness_level=0.0):
+    """
+    Generates a single frame of telemetry data based on current state.
+    Returns a dictionary containing 'waves', 'leds', and 'is_hardware'.
+    """
+    waves = None
+    leds = [0, 0, 0, 0]
+    is_hardware = 'ZynqOnChipDriver' in str(type(driver_instance))
+    
+    drift = int(phase_drift) % 256
+
+    # Prioritize debugger's SPHY wave if a circuit is loaded
+    if sim_instance._circuit is not None:
+        base_waves = sim_instance._sphy_waves
+        if base_waves is not None:
+             # Apply phase drift (rolling the wave) to simulate time evolution
+            waves = np.roll(base_waves, drift)
+            
+            # Add subtle thermal noise for realism, modulated by Photonic Entropy AND Screen Brightness
+            noise_amp = 10 + (entropy_level * 500) + (brightness_level * 50)
+            noise = np.random.normal(0, noise_amp, 256)
+            waves = np.clip(waves + noise, 0, 4095).astype(int)
+    else:
+        # Fallback to direct driver telemetry
+        telemetry = driver_instance.read_telemetry(length=256)
+        if isinstance(telemetry, dict):
+            waves = telemetry['waves']
+            leds = telemetry['leds']
+        else:
+            waves = telemetry
+    
+    # Ensure waves is always a valid array
+    if waves is None:
+        waves = np.zeros(256)
+        leds = [0, 0, 0, 0]
+        
+    return {
+        'waves': waves,
+        'leds': leds,
+        'is_hardware': is_hardware
+    }
 
 def background_telemetry_stream():
     """Continuously generates and emits telemetry data."""
-    global telemetry_streaming_active
+    global telemetry_streaming_active, photonic_entropy_level, screen_brightness_modulation
     telemetry_streaming_active = True
     phase_accumulator = 0.0
     
     while telemetry_streaming_active:
         try:
-            waves = None
-            leds = [0, 0, 0, 0]
-            is_hardware = 'ZynqOnChipDriver' in str(type(driver))
-            
             # Update phase drift for animation
             phase_accumulator += 2.0
-            drift = int(phase_accumulator) % 256
-
-            # Prioritize debugger's SPHY wave if a circuit is loaded
-            if mimetic_simulator._circuit is not None:
-                base_waves = mimetic_simulator._sphy_waves
-                if base_waves is not None:
-                     # Apply phase drift (rolling the wave) to simulate time evolution
-                    waves = np.roll(base_waves, drift)
+            
+            frame_data = generate_telemetry_frame(
+                driver, 
+                mimetic_simulator, 
+                phase_accumulator, 
+                photonic_entropy_level, 
+                screen_brightness_modulation
+            )
+            
+            # Add entropy to the frame data for the frontend
+            frame_data['entropy'] = photonic_entropy_level
+            
+            if frame_data['waves'] is not None:
+                # Convert to list for JSON serialization if it's numpy
+                if isinstance(frame_data['waves'], np.ndarray):
+                    frame_data['waves'] = frame_data['waves'].tolist()
                     
-                    # Add subtle thermal noise for realism
-                    noise = np.random.normal(0, 10, 256)
-                    waves = np.clip(waves + noise, 0, 4095).astype(int)
+                socketio.emit('telemetry_data', frame_data)
                 
-                print(f"DEBUG: Telemetry from mimetic_simulator. _sphy_waves shape={waves.shape if waves is not None else 'None'}")
-                # Leds can be simulated based on debugger state (e.g. step active)
-            else:
-                # Fallback to direct driver telemetry
-                telemetry = driver.read_telemetry(length=256)
-                if isinstance(telemetry, dict):
-                    waves = telemetry['waves']
-                    leds = telemetry['leds']
-                else:
-                    waves = telemetry
-                print(f"DEBUG: Telemetry from driver.read_telemetry. waves shape={waves.shape if waves is not None else 'None'}")
-            
-            # Ensure waves is always a valid array, even if no active simulation or driver data
-            if waves is None:
-                waves = np.zeros(256) # Default idle wave (flat line)
-                leds = [0, 0, 0, 0] # Default idle LEDs
-            
-            # This check is now mostly redundant but harmless
-            if waves is not None:
-                telemetry_data = {
-                    'waves': waves.tolist(),
-                    'leds': leds,
-                    'is_hardware': is_hardware
-                }
-                # print(f"Emitting telemetry: waves_shape={waves.shape}, waves_dtype={waves.dtype}") # Simpler debug print
-                socketio.emit('telemetry_data', telemetry_data)
         except Exception as e:
             print(f"Error in background telemetry stream: {e}")
         time.sleep(0.1) # Emit every 100ms (10 FPS)
 
+def background_screen_capture_loop():
+    """Continuously captures the screen and modulates the DAC."""
+    global screen_brightness_modulation, telemetry_streaming_active
+    print("Starting background screen capture loop...")
+    
+    while telemetry_streaming_active:
+        try:
+            if ImageGrab and ImageStat:
+                # Capture Screen
+                # On macOS, this might ask for permission the first time
+                screenshot = ImageGrab.grab()
+                
+                # Save capture (Overwriting to save space, or use timestamp for history)
+                # For "put through DAC", we just need the latest.
+                capture_path = os.path.join(app.config['CAPTURES_DIR'], 'latest_capture.png')
+                screenshot.save(capture_path)
+                
+                # Calculate average brightness to modulate the "DAC" (SPHY waves)
+                stat = ImageStat.Stat(screenshot)
+                avg_brightness = sum(stat.mean) / len(stat.mean) # Average of R, G, B
+                
+                # Normalize 0-255 to 0.0-1.0
+                screen_brightness_modulation = avg_brightness / 255.0
+                # print(f"Screen Capture Processed. Brightness: {screen_brightness_modulation}")
+                
+            else:
+                print("PIL.ImageGrab not available. Skipping capture.")
+                time.sleep(5) # Wait longer before retrying
+                
+        except Exception as e:
+            print(f"Error in screen capture loop: {e}")
+        
+        time.sleep(2.0) # Capture every 2 seconds
+
+@socketio.on('photonic_entropy')
+def handle_photonic_entropy(data):
+    global photonic_entropy_level
+    photonic_entropy_level = float(data.get('entropy', 0.0))
+
 @socketio.on('connect')
 def connect():
-    global telemetry_thread
+    global telemetry_thread, capture_thread
     print('Client connected to WebSocket.')
+    
     if telemetry_thread is None or not telemetry_thread.is_alive():
         telemetry_thread = socketio.start_background_task(background_telemetry_stream)
         print("Started background telemetry streaming.")
+        
+    if capture_thread is None or not capture_thread.is_alive():
+        capture_thread = socketio.start_background_task(background_screen_capture_loop)
+        print("Started background screen capture loop.")
+        
     emit('status', {'message': 'Connected to telemetry stream'})
 
 @socketio.on('disconnect')

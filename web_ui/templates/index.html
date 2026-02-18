@@ -39,9 +39,21 @@
             <div class="mode-badge" id="mode-badge">SIMULATION</div>
             
             <a href="/ide" class="nav-link" style="margin-right: 20px; margin-left: 20px; color: #2ea043; text-decoration: none; border: 1px solid #2ea043; padding: 5px 10px; border-radius: 4px;">Launch IDE &rarr;</a>
-            <div class="status-indicator" id="status-indicator"></div>
+            <button id="toggle-photonic-btn" title="Toggle the Mimetic Twin Protocol (Webcam Entropy Loop)" style="width: auto; padding: 5px 10px; margin-right: 20px; background-color: transparent; border: 1px solid #2ea043; color: #2ea043;">Photonic Link</button>
+            <div class="status-indicator" id="status-indicator" title="System Heartbeat"></div>
             <span class="status-text">SYSTEM: ONLINE</span>
         </header>
+
+        <!-- Photonic Entanglement Floating Window -->
+        <div id="photonic-window" class="floating-window hidden">
+            <div class="window-header">
+                <span>Photonic Entanglement</span>
+                <button class="close-window-btn" id="close-photonic-btn">&times;</button>
+            </div>
+            <div class="window-content">
+                <iframe src="/photonic"></iframe>
+            </div>
+        </div>
 
         <main>
             <div class="dashboard-grid">

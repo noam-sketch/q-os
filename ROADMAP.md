@@ -31,9 +31,9 @@ This document outlines the development trajectory of **Q-OS**, from its current 
 - [ ] **Driver Development:**
     - [ ] Implement AXI4-Lite driver in Python (`pynq` or `devmem`) to write phase parameters to FPGA registers.
     - [ ] Create a DMA (Direct Memory Access) channel for high-speed waveform telemetry reading.
-- [ ] **Hardware-in-the-Loop (HIL):**
+- [x] **Hardware-in-the-Loop (HIL):**
     - [ ] Deploy Flask server directly on the Zynq ARM processor (PS).
-    - [ ] Real-time ADC feedback visualization in the Web UI.
+    - [x] Real-time ADC feedback visualization in the Web UI (via **Mimetic Twin Protocol**).
 - [ ] **Expanded Gate Set:**
     - [ ] Implement Pauli-X, Pauli-Z, and Phase gates.
     - [x] Implement **CNOT** (Entanglement) logic using SPYSPI wave interference.
@@ -41,6 +41,10 @@ This document outlines the development trajectory of **Q-OS**, from its current 
 ## 🟠 Phase 2.5: The Infinite Loop (v2.0)
 > **Goal:** Implement "Continuous Mimetic Entanglement" via bidirectional feedback.
 
+- [x] **Mimetic Twin Protocol (Photonic Entanglement):**
+    - [x] **Webcam Entropy Loop:** Real-time video feedback modulating SPHY wave noise.
+    - [x] **Screen Capture Feedback:** Average screen brightness driving DAC modulation (Simulated).
+    - [x] **Floating Window UI:** Integrated Photonic page into the main Dashboard.
 - [ ] **Infinite Analog Loop:**
     - [ ] Establish zero-latency feedback path ($S_p \to S_m \to S_p$).
     - [ ] Implement the **Modulating Entanglement Field** ($\Phi(t)$) algorithm in FPGA logic.

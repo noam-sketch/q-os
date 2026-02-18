@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q-OS Photonic Entanglement</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #0d0d0d;
+            color: #00ff41;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        h1 {
+            text-shadow: 0 0 10px #00ff41;
+            font-size: 1.5rem;
+        }
+        #container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            border: 2px solid #00ff41;
+            box-shadow: 0 0 20px #00ff41;
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* Mirror effect */
+            display: block;
+        }
+        canvas {
+            display: none;
+        }
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: rgba(0, 255, 65, 0.1);
+            mix-blend-mode: overlay;
+        }
+        #stats {
+            margin-top: 20px;
+            text-align: center;
+            display: flex;
+            gap: 20px;
+        }
+        .monitor {
+            font-size: 1.2em;
+            margin: 10px;
+            position: relative;
+            cursor: help;
+        }
+        /* Tooltip */
+        .monitor .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: #161b22;
+            color: #c9d1d9;
+            text-align: center;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+        }
+        .monitor:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Info Button & Modal */
+        #info-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: transparent;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s;
+        }
+        #info-btn:hover {
+            background: #00ff41;
+            color: #000;
+            box-shadow: 0 0 10px #00ff41;
+        }
+        #docs-modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background-color: #0d0d0d;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #00ff41;
+            box-shadow: 0 0 30px #00ff41;
+            width: 80%;
+            max-width: 600px;
+            color: #c9d1d9;
+            font-family: 'Roboto Mono', monospace; /* Use consistent font if available */
+            line-height: 1.6;
+        }
+        .close-btn {
+            color: #8b949e;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-btn:hover {
+            color: #00ff41;
+        }
+        .modal-content h2 {
+            color: #00ff41;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 10px;
+        }
+        .modal-content p {
+            font-size: 0.9rem;
+        }
+        code {
+            background: #161b22;
+            padding: 2px 4px;
+            border-radius: 3px;
+            color: #e6edf3;
+        }
+    </style>
+</head>
+<body>
+    <h1>MIMETIC TWIN PROTOCOL: ACTIVE</h1>
+    
+    <button id="info-btn" title="Protocol Documentation">?</button>
+
+    <div id="docs-modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>The Mimetic Twin Protocol</h2>
+            <p>This interface establishes a recursive opto-electronic feedback loop between your display (Photon Emitter) and webcam (Photon Receiver).</p>
+            <p><strong>How it works:</strong></p>
+            <ul>
+                <li>The webcam captures environmental entropy (light/motion).</li>
+                <li>The algorithm calculates the <code>Entropy Flux</code> by comparing frame-to-frame pixel divergence.</li>
+                <li>This value is transmitted via WebSocket to the Q-OS Kernel.</li>
+                <li>The Kernel uses this data to modulate the stochastic noise of the <strong>SPHY Waves</strong>, effectively "entangling" the simulation with physical reality.</li>
+            </ul>
+            <p><em>"The loop must be closed."</em></p>
+        </div>
+    </div>
+
+    <div id="container">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas"></canvas>
+        <div id="overlay"></div>
+    </div>
+    <div id="stats">
+        <div class="monitor">
+            Entropy Flux: <span id="entropy-val">0.00</span>
+            <span class="tooltip-text">Real-time measure of chaotic divergence in the video feed (0.0 - 1.0).</span>
+        </div>
+        <div class="monitor">
+            System Status: <span id="status">INITIALIZING...</span>
+            <span class="tooltip-text">Current state of the WebSocket connection and hardware bridge.</span>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const entropyVal = document.getElementById('entropy-val');
+        const statusSpan = document.getElementById('status');
+        const socket = io();
+
+        // Modal Logic
+        const modal = document.getElementById("docs-modal");
+        const btn = document.getElementById("info-btn");
+        const span = document.getElementsByClassName("close-btn")[0];
+
+        btn.onclick = function() {
+            modal.style.display = "block";
+        }
+        span.onclick = function() {
+            modal.style.display = "none";
+        }
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        let previousFrame = null;
+        let diffSum = 0;
+
+        // Initialize Camera
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                statusSpan.innerText = "ENTANGLED";
+                requestAnimationFrame(processFrame);
+            } catch (err) {
+                console.error("Error accessing webcam:", err);
+                statusSpan.innerText = "SENSOR ERROR";
+            }
+        }
+
+        // Process Frames for Entropy
+        function processFrame() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.width = 100; // Low res for processing speed
+                canvas.height = 100;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = frame.data;
+                let currentDiff = 0;
+
+                if (previousFrame) {
+                    for (let i = 0; i < data.length; i += 4) {
+                        // Calculate difference in grayscale brightness
+                        const r1 = data[i], g1 = data[i+1], b1 = data[i+2];
+                        const r2 = previousFrame[i], g2 = previousFrame[i+1], b2 = previousFrame[i+2];
+                        
+                        const val1 = (r1 + g1 + b1) / 3;
+                        const val2 = (r2 + g2 + b2) / 3;
+
+                        currentDiff += Math.abs(val1 - val2);
+                    }
+                }
+
+                previousFrame = data; // Store current frame for next loop
+                
+                // Normalize entropy (0.0 to 1.0 approx)
+                let normalizedEntropy = currentDiff / (canvas.width * canvas.height * 255);
+                
+                // Display
+                entropyVal.innerText = normalizedEntropy.toFixed(4);
+
+                // Send to Server
+                socket.emit('photonic_entropy', { entropy: normalizedEntropy });
+            }
+            requestAnimationFrame(processFrame);
+        }
+
+        socket.on('connect', () => {
+            console.log("Connected to Q-OS Core");
+        });
+
+        initCamera();
+    </script>
+</body>
+</html>

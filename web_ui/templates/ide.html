@@ -55,6 +55,7 @@
                 <div class="editor-controls">
                     <button id="toggle-telemetry-btn" title="Toggle Telemetry">Telemetry</button>
                     <button id="toggle-debugger-btn" title="Toggle Debugger">Debugger</button>
+                    <button id="toggle-photonic-btn" title="Toggle Photonic Entanglement">Photonic</button>
                     <div class="ai-toggle-container">
                         <label class="switch">
                             <input type="checkbox" id="ai-mode-toggle">
@@ -177,6 +178,17 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Photonic Entanglement Floating Window -->
+        <div id="photonic-window" class="floating-window hidden">
+            <div class="window-header">
+                <span>Photonic Entanglement</span>
+                <button class="close-window-btn" data-target="photonic-window">&times;</button>
+            </div>
+            <div class="window-content">
+                <iframe src="/photonic"></iframe>
             </div>
         </div>
 
