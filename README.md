@@ -1,5 +1,7 @@
 # Q-OS: Quantum-Mimetic Operating System
 
+![Q-OS Diagram](img/q-os%20diagram.jpg)
+
 This repository contains the implementation of **Q-OS**, a universal FPGA operating system for quantum-mimetic execution. It features a software-defined "Mimetic Bridge" that translates quantum algorithms into deterministic analog waveforms (SPHY Waves) on standard hardware.
 
 ## License
