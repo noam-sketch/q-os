@@ -1,5 +1,7 @@
 import numpy as np
 import cirq
+import json
+import os
 from q_os.sphy_generator import get_regularized_sphy_waves, get_sphy_wave_from_quantum_state
 
 class MimeticSimulator:
@@ -114,3 +116,37 @@ class MimeticSimulator:
             "sphy_waves": self._sphy_waves.tolist(),
             "current_gate_info": self._current_gate_info
         }
+
+    def save_state(self, filepath):
+        """
+        Saves the current simulation state (SPHY waves only for now) to disk.
+        """
+        state = {
+            "sphy_waves": self._sphy_waves.tolist(),
+            "current_step": self._current_step,
+            "current_gate_info": self._current_gate_info
+        }
+        with open(filepath, 'w') as f:
+            json.dump(state, f)
+
+    def load_state(self, filepath):
+        """
+        Loads the simulation state from disk.
+        """
+        if not os.path.exists(filepath):
+            return False
+            
+        try:
+            with open(filepath, 'r') as f:
+                state = json.load(f)
+            
+            if "sphy_waves" in state:
+                self._sphy_waves = np.array(state["sphy_waves"])
+            if "current_step" in state:
+                self._current_step = state["current_step"]
+            if "current_gate_info" in state:
+                self._current_gate_info = state["current_gate_info"]
+            return True
+        except Exception as e:
+            print(f"Failed to load state: {e}")
+            return False

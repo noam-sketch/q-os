@@ -489,7 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch('/api/execute', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code: code })
+            body: JSON.stringify({ code: code, project: currentProject })
         })
         .then(res => res.json())
         .then(data => {
@@ -836,7 +836,7 @@ ${data.traceback}`;
             const response = await fetch('/api/debug/load', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: code })
+                body: JSON.stringify({ code: code, project: currentProject })
             });
             const data = await response.json();
             if (data.error) {
@@ -860,7 +860,8 @@ ${data.traceback}`;
         try {
             const response = await fetch('/api/debug/reset', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ project: currentProject })
             });
             const data = await response.json();
             if (data.error) {
@@ -885,7 +886,8 @@ ${data.traceback}`;
         try {
             const response = await fetch('/api/debug/step', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ project: currentProject })
             });
             const data = await response.json();
             if (data.error) {

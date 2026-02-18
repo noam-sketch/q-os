@@ -50,6 +50,53 @@ app.config['CAPTURES_DIR'] = os.path.join(os.path.dirname(__file__), 'static', '
 if not os.path.exists(app.config['CAPTURES_DIR']):
     os.makedirs(app.config['CAPTURES_DIR'])
 
+# --- State Persistence Helpers ---
+def get_project_state_path(project_name):
+    return os.path.join(app.config['PROJECTS_DIR'], project_name, '.qvm_state.json')
+
+def get_last_active_project_path():
+    return os.path.join(app.config['PROJECTS_DIR'], '.last_active_project')
+
+def set_last_active_project(project_name):
+    try:
+        with open(get_last_active_project_path(), 'w') as f:
+            f.write(project_name)
+    except Exception as e:
+        print(f"Failed to set last active project: {e}")
+
+def get_last_active_project():
+    path = get_last_active_project_path()
+    if os.path.exists(path):
+        try:
+            with open(path, 'r') as f:
+                return f.read().strip()
+        except Exception as e:
+            print(f"Failed to read last active project: {e}")
+    return None
+
+def save_project_state(project_name):
+    if not project_name: return
+    try:
+        path = get_project_state_path(project_name)
+        mimetic_simulator.save_state(path)
+        set_last_active_project(project_name)
+    except Exception as e:
+        print(f"Error saving project state: {e}")
+
+def restore_last_session():
+    project_name = get_last_active_project()
+    if project_name:
+        path = get_project_state_path(project_name)
+        if os.path.exists(path):
+            print(f"Restoring session for project: {project_name}")
+            if mimetic_simulator.load_state(path):
+                print("Session restored.")
+            else:
+                print("Failed to restore session state.")
+
+# Restore session on startup
+restore_last_session()
+
 # --- AI Configuration ---
 def configure_ai():
     """Configures Vertex AI if environment variables are set."""
@@ -199,11 +246,14 @@ def files():
 def execute():
     """
     Executes Python code and returns stdout.
+    Also updates the Mimetic Simulator and Hardware Driver if a 'circuit' is defined.
     WARNING: This is unsafe for production environments. 
     It allows arbitrary code execution.
     """
     data = request.json
     code = data.get('code')
+    project_name = data.get('project')
+    
     if not code:
         return jsonify({'error': 'No code provided'}), 400
         
@@ -213,8 +263,38 @@ def execute():
         with contextlib.redirect_stdout(output_buffer):
             # Safe-ish execution environment?
             # For now, we just run it. In a real system, use a sandbox or container.
-            exec_globals = {}
+            exec_globals = {"cirq": cirq, "np": np}
+            # Inject mimetic ops
+            exec_globals["H"] = H
+            exec_globals["CNOT"] = CNOT
+            exec_globals["Stabilize"] = Stabilize
+            
             exec(code, exec_globals)
+            
+            # Check for a 'circuit' object to run on the simulator
+            circuit = exec_globals.get('circuit')
+            if isinstance(circuit, cirq.Circuit):
+                print(f"\n[Q-OS Kernel] Detected Quantum Circuit. Executing on Mimetic Simulator...")
+                mimetic_simulator.load_circuit(circuit)
+                
+                # Run to completion (fast-forward)
+                while mimetic_simulator.step():
+                    pass
+                
+                # Get final state
+                debug_info = mimetic_simulator.get_current_debug_info()
+                
+                # Update Hardware Driver with final SPHY waves
+                driver.write_waveform(np.array(debug_info['sphy_waves']).astype(int))
+                
+                print(f"[Q-OS Kernel] SPHY Waves Updated. Final State Vector reached.")
+
+                if project_name:
+                    save_project_state(project_name)
+                    print(f"[Q-OS Kernel] Project State Saved: {project_name}")
+            else:
+                 print(f"\n[Q-OS Kernel] No 'circuit' object found. Standard Python execution completed.")
+
         return jsonify({'output': output_buffer.getvalue()})
     except Exception as e:
         import traceback
@@ -416,6 +496,8 @@ def disconnect():
 def debug_load_circuit():
     data = request.json
     code = data.get('code')
+    project_name = data.get('project')
+    
     if not code:
         return jsonify({'error': 'No Cirq code provided'}), 400
 
@@ -439,6 +521,11 @@ def debug_load_circuit():
         mimetic_simulator.load_circuit(circuit)
         debug_info = mimetic_simulator.get_current_debug_info()
         driver.write_waveform(np.array(debug_info['sphy_waves']).astype(int)) # Update hardware/driver
+        
+        if project_name:
+            set_last_active_project(project_name)
+            save_project_state(project_name)
+            
         return jsonify(debug_info)
     except Exception as e:
         import traceback
@@ -446,10 +533,17 @@ def debug_load_circuit():
 
 @app.route('/api/debug/step', methods=['POST'])
 def debug_step_circuit():
+    data = request.json
+    project_name = data.get('project')
+    
     try:
         if mimetic_simulator.step():
             debug_info = mimetic_simulator.get_current_debug_info()
             driver.write_waveform(np.array(debug_info['sphy_waves']).astype(int)) # Update hardware/driver
+            
+            if project_name:
+                save_project_state(project_name)
+                
             return jsonify(debug_info)
         else:
             return jsonify({'status': 'Finished', 'current_step': mimetic_simulator.get_current_debug_info()['current_step']}), 200
@@ -459,10 +553,17 @@ def debug_step_circuit():
 
 @app.route('/api/debug/reset', methods=['POST'])
 def debug_reset_circuit():
+    data = request.json
+    project_name = data.get('project')
+
     try:
         mimetic_simulator.reset()
         debug_info = mimetic_simulator.get_current_debug_info()
         driver.write_waveform(np.array(debug_info['sphy_waves']).astype(int)) # Update hardware/driver
+        
+        if project_name:
+            save_project_state(project_name)
+
         return jsonify(debug_info)
     except Exception as e:
         import traceback
